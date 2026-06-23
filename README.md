@@ -17,25 +17,81 @@
 Website 🚀 <a href="https://contributte.org">contributte.org</a> | Contact 👨🏻‍💻 <a href="https://paveljanda.com">paveljanda.com</a>, <a href="https://f3l1x.io">f3l1x.io</a> | Twitter 🐦 <a href="https://twitter.com/contributte">@contributte</a>
 </p>
 
-## Usage
+Nette Database data source adapter for [ublaboo/datagrid](https://github.com/contributte/datagrid), useful for grids backed by custom SQL queries.
 
-To install latest version of `contributte/datagrid-nette-database-data-source` use [Composer](https://getcomposer.org).
+## Versions
+
+| State  | Version | Branch | PHP  |
+|--------|---------|--------|------|
+| dev    | ~3.0.0  | master | ^7.2 |
+| stable | ~2.0.0  | master | ^7.2 |
+| stable | ~1.1.0  | master | ^5.6 |
+
+## Installation
+
+To install latest version of `ublaboo/datagrid-nette-database-data-source` use [Composer](https://getcomposer.org).
 
 ```bash
 composer require ublaboo/datagrid-nette-database-data-source
 ```
 
-## Documentation
+## Usage
 
-For details on how to use this package, check out our [documentation](.docs).
+```php
+/**
+ * @var Nette\Database\Context
+ * @inject
+ */
+public $ndb;
 
-## Versions
 
-| State  | Version  - | Branch | PHP  |
-|--------|------------|--------|------|
-| dev    | ~3.0.0     | master | ^7.2 |
-| stable | ~2.0.0     | master | ^7.2 |
-| stable | ~1.1.0     | master | ^5.6 |
+public function createComponentNetteGrid($name)
+{
+	/**
+	 * @type Ublaboo\DataGrid\DataGrid
+	 */
+	$grid = new DataGrid($this, $name);
+
+	$query =
+		'SELECT p.*, GROUP_CONCAT(v.code SEPARATOR ", ") AS variants
+		FROM product p
+		LEFT JOIN product_variant p_v
+			ON p_v.product_id = p.id
+		WHERE p.deleted IS NULL
+			AND (product.status = ? OR product.status = ?)';
+
+	$params = [1, 2];
+
+	/**
+	 * @var Ublaboo\NetteDatabaseDataSource\NetteDatabaseDataSource
+	 *
+	 * @param Nette\Database\Context
+	 * @param $query
+	 * @param $params|NULL
+	 */
+	$datasource = new NetteDatabaseDataSource($this->ndb, $query, $params);
+
+	$grid->setDataSource($datasource);
+
+	$grid->addColumnText('name', 'Name')
+		->setSortable();
+
+	$grid->addColumnNumber('id', 'Id')
+		->setSortable();
+
+	$grid->addColumnDateTime('created', 'Created');
+
+	$grid->addFilterDateRange('created', 'Created:');
+
+	$grid->addFilterText('name', 'Name and id', ['id', 'name']);
+
+	$grid->addFilterSelect('status', 'Status', ['' => 'All', 1 => 'Online', 0 => 'Ofline', 2 => 'Standby']);
+
+	/**
+	 * Etc
+	 */
+}
+```
 
 
 ## Development
