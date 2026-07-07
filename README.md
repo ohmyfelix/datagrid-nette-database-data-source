@@ -37,59 +37,59 @@ composer require ublaboo/datagrid-nette-database-data-source
 
 ## Usage
 
+Use this data source when your grid is backed by a custom SQL query instead of a Nette Database selection. Pass the Nette Database connection, SQL, and parameters to `NetteDatabaseDataSource`, then configure the grid normally.
+
 ```php
-/**
- * @var Nette\Database\Context
- * @inject
- */
-public $ndb;
+use Nette\Database\Context;
+use Ublaboo\DataGrid\DataGrid;
+use Ublaboo\NetteDatabaseDataSource\NetteDatabaseDataSource;
 
-
-public function createComponentNetteGrid($name)
+final class ProductPresenter extends Nette\Application\UI\Presenter
 {
-	/**
-	 * @type Ublaboo\DataGrid\DataGrid
-	 */
-	$grid = new DataGrid($this, $name);
+	/** @var Context */
+	private $database;
 
-	$query =
-		'SELECT p.*, GROUP_CONCAT(v.code SEPARATOR ", ") AS variants
+	public function __construct(Context $database)
+	{
+		$this->database = $database;
+	}
+
+	public function createComponentNetteGrid(string $name): DataGrid
+	{
+		$grid = new DataGrid($this, $name);
+
+		$query =
+			'SELECT p.*, GROUP_CONCAT(v.code SEPARATOR ", ") AS variants
 		FROM product p
 		LEFT JOIN product_variant p_v
 			ON p_v.product_id = p.id
 		WHERE p.deleted IS NULL
-			AND (product.status = ? OR product.status = ?)';
+			AND (p.status = ? OR p.status = ?)';
 
-	$params = [1, 2];
+		$params = [1, 2];
 
-	/**
-	 * @var Ublaboo\NetteDatabaseDataSource\NetteDatabaseDataSource
-	 *
-	 * @param Nette\Database\Context
-	 * @param $query
-	 * @param $params|NULL
-	 */
-	$datasource = new NetteDatabaseDataSource($this->ndb, $query, $params);
+		$datasource = new NetteDatabaseDataSource($this->database, $query, $params);
 
-	$grid->setDataSource($datasource);
+		$grid->setDataSource($datasource);
 
-	$grid->addColumnText('name', 'Name')
-		->setSortable();
+		$grid->addColumnText('name', 'Name')
+			->setSortable();
 
-	$grid->addColumnNumber('id', 'Id')
-		->setSortable();
+		$grid->addColumnNumber('id', 'Id')
+			->setSortable();
 
-	$grid->addColumnDateTime('created', 'Created');
+		$grid->addColumnDateTime('created', 'Created');
 
-	$grid->addFilterDateRange('created', 'Created:');
+		$grid->addFilterDateRange('created', 'Created:');
 
-	$grid->addFilterText('name', 'Name and id', ['id', 'name']);
+		$grid->addFilterText('name', 'Name and id', ['id', 'name']);
 
-	$grid->addFilterSelect('status', 'Status', ['' => 'All', 1 => 'Online', 0 => 'Ofline', 2 => 'Standby']);
+		$grid->addFilterSelect('status', 'Status', ['' => 'All', 1 => 'Online', 0 => 'Offline', 2 => 'Standby']);
 
-	/**
-	 * Etc
-	 */
+		// Add more columns, filters, and actions as needed.
+
+		return $grid;
+	}
 }
 ```
 
